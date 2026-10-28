@@ -10,23 +10,27 @@ XML Bird is an XML parser for programs written in Vala or C.
 
 ## Building from Source
 
-Install valac and Glib first.
+Install `valac`, `glib-2.0`, `meson`, and `ninja`.
 
-Configure, build and install with doit:
+Configure and build:
 
-    ./configure
-    doit
-    sudo ./install.py
+    meson setup build
+    meson compile -C build
 
-Configure, build and install without doit:
+The default prefix is `/usr/local`, but you can customize it:
 
-    ./configure
-    ./build.py
-    sudo ./install.py
+    meson setup build --prefix=/usr
 
-The default prefix is /usr/local but you can set the prefix to /usr
+Run tests and benchmarks:
 
-    ./configure --prefix=/usr
+    meson test -C build
+    meson test -C build --benchmark
+
+Install:
+
+    ninja -C build install
+    # or
+    meson install -C build
 
 Exampel usage:
 
@@ -75,7 +79,19 @@ Exampel usage:
 
 ## Hacking
 
-There is a test suite with benchmarks. Run “doit test”.
+Run the test suite and benchmarks:
+
+    meson test -C build
+    meson test -C build --benchmark
+
+To enable the fuzzing target and run the fuzz tests:
+
+    meson setup build -Dfuzzing=true
+    meson test -C build --suite fuzz
+
+To run continuous fuzzing with `radamsa`:
+
+    ninja -C build fuzz
 
 XML Bird is a part of the [Birdfont][birdfont] project.
 

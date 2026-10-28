@@ -1,1 +1,7 @@
-*.pyc
+build/
+.ninja*
+.idea/
+*~
+.fuse_hidden*
+.Trash-*
+

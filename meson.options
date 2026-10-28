@@ -1,0 +1,20 @@
+option(
+  'tests',
+  type: 'boolean',
+  value: true,
+  description: 'Build tests and benchmarks',
+)
+
+option(
+  'fuzzing',
+  type: 'boolean',
+  value: false,
+  description: 'Build fuzzing target',
+)
+
+option(
+  'experimental_non_null',
+  type: 'boolean',
+  value: false,
+  description: 'Enable compile-time checks for null pointers',
+)
