@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            valac \
+            libglib2.0-dev \
+            git \
+            gcc \
+            make \
+            wget \
+            python3-pip \
+            afl++
+          pip3 install --break-system-packages --upgrade meson ninja
+          meson --version
+          ninja --version
+
+      - name: Setup Meson
+        run: meson setup build -Dfuzzing=true -Dwarning_level=2
+
+      - name: Compile
+        run: meson compile -C build
+
+      - name: Run Tests (Unit & Fuzz)
+        run: meson test -C build --verbose
+
+      - name: Run Benchmarks
+        run: meson test -C build --benchmark --verbose
+
+      - name: Verify Install
+        run: meson install -C build --destdir /tmp/install-dest
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always() && !env.ACT
+        with:
+          files: build/meson-logs/testlog.junit.xml
