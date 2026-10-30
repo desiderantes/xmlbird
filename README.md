@@ -32,7 +32,7 @@ Install:
     # or
     meson install -C build
 
-Exampel usage:
+Example usage:
 
     using B;
 
@@ -89,8 +89,9 @@ To enable the fuzzing target and run the fuzz tests:
     meson setup build -Dfuzzing=true
     meson test -C build --suite fuzz
 
-To run continuous fuzzing with `radamsa`:
+To run continuous coverage-guided fuzzing with AFL++ (`afl-fuzz`):
 
+    CC=afl-clang-fast meson setup build -Dfuzzing=true
     ninja -C build fuzz
 
 XML Bird is a part of the [Birdfont][birdfont] project.
