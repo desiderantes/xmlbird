@@ -110,10 +110,18 @@ jobs:
             fi
           done
 
+      - name: Archive Fuzz Output
+        if: always() && !env.ACT
+        run: |
+          if [ -d build/fuzzing/fuzz_out ]; then
+            tar -C build/fuzzing -czf build/afl-fuzz-output.tar.gz fuzz_out
+          fi
+
       - name: Upload Fuzz Output
         uses: actions/upload-artifact@v4
         if: always() && !env.ACT
         with:
           name: afl-fuzz-output
-          path: build/fuzzing/fuzz_out
+          path: build/afl-fuzz-output.tar.gz
+          if-no-files-found: ignore
           retention-days: 14

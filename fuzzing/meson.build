@@ -41,6 +41,7 @@ if afl_fuzz.found()
     '/usr/share/afl++/dictionaries/xml.dict',
     '/usr/share/doc/american-fuzzy-lop/dictionaries/xml.dict',
     '/usr/share/doc/afl++/dictionaries/xml.dict',
+    '/usr/share/doc/afl++-doc/dictionaries/xml.dict',
   ]
     if fs.exists(dict)
       afl_args += ['-x', dict]
