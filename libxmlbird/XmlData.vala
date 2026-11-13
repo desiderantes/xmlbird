@@ -23,13 +23,9 @@ internal class XmlData : XmlString {
 	
 	const char FIRST_BIT = 1 << 7;
 
-	internal int log_level = WARNINGS;
-	
-	public XmlData (char* data, int length, int log_level) {
+	public XmlData (char* data, int length) {
 		base (data, length);
 
-		this.log_level = log_level;
-		
 		start_tags = null;
 		tags_capacity = 0;
 		tags_size = 0;
@@ -101,9 +97,7 @@ internal class XmlData : XmlString {
 					i = skip_quote (d, i);
 					
 					if (unlikely (i == -1)) {
-						if (log_level == WARNINGS) {
-							XmlParser.warning ("No end quote.");
-						}
+						GLib.debug ("XML error: No end quote.");
 						
 						error = true;
 						break;
@@ -131,9 +125,7 @@ internal class XmlData : XmlString {
  		c = data[i];
  		
 		if (unlikely (c != '"')) {
-			if (log_level == WARNINGS) {
-				XmlParser.warning ("Not a quote.");
-			}
+			GLib.debug ("XML error: Not a quote.");
 
 			error = true;
 			return i + 1;
@@ -180,9 +172,7 @@ internal class XmlData : XmlString {
 				error = true;
 			}
 
-			if (log_level == WARNINGS) {
-				XmlParser.warning ("Can not allocate xml data buffer.");
-			}
+			GLib.warning ("Can not allocate xml data buffer.");
 			
 			return false;
 		}

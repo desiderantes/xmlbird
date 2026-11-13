@@ -40,6 +40,7 @@ xmlbird_lib = shared_library(
     'xmlbird',
     xmlbird_sources,
     dependencies: [glib_dep, gobject_dep, posix_dep],
+    c_args: ['-DG_LOG_DOMAIN="xmlbird"'],
     vala_header: 'xmlbird.h',
     vala_vapi: 'xmlbird.vapi',
     version: meson.project_version(),

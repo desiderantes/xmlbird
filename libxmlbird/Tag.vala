@@ -51,18 +51,15 @@ public class Tag : GLib.Object {
 	}
 	
 	bool parser_error;
-	
-	internal int log_level;
 
 	bool parsed = false;
 	
 	Tag? parent = null;
 
 	internal Tag (XmlString name, XmlString attributes, XmlString content,
-		int log_level, XmlData entire_file, Tag? parent = null) {
+		XmlData entire_file, Tag? parent = null) {
 			
 		this.entire_file = entire_file;
-		this.log_level = log_level;
 		this.name = name;
 		this.data = content;
 		this.attributes = attributes;
@@ -74,7 +71,7 @@ public class Tag : GLib.Object {
 	}
 	
 	internal Tag.empty () {
-		entire_file = new XmlData ("", 0, NONE);
+		entire_file = new XmlData ("", 0);
 		data = new XmlString ("", 0);
 		attributes = new XmlString ("", 0);
 		name = new XmlString ("", 0);
@@ -338,7 +335,7 @@ public class Tag : GLib.Object {
 					data.get_next_ascii_char (ref end_tag_index, out c);
 				}
 					
-				return new Tag (name, attributes, content, log_level, entire_file, this);	
+				return new Tag (name, attributes, content, entire_file, this);	
 			}
 		}
 	
@@ -686,7 +683,7 @@ public class Tag : GLib.Object {
 
 		public new Tag get () {
 			if (unlikely (next_tag == null)) {
-				XmlParser.warning ("No tag is parsed yet.");
+				GLib.warning ("No tag is parsed yet.");
 				return new Tag.empty ();
 			}
 			return (!) next_tag;
@@ -714,7 +711,7 @@ public class Tag : GLib.Object {
 	}
 	
 	internal void warn (string message) {
-		XmlParser.warning (message);
+		GLib.debug ("XML error: %s", message);
 	}
 }
 

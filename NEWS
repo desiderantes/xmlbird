@@ -13,6 +13,7 @@ xmlbird (1.2.15) unreleased;
   * Fix assertion crash on attributes with empty local name after ':'
   * Replace Regex-based XmlParser.encode/decode to avoid crashes on invalid UTF-8
   * Support Meson subproject dependency resolution (override_dependency)
+  * Switch internal diagnostics from custom print logging to GLib logging (G_LOG_DOMAIN="xmlbird")
 
  -- Mario Daniel Ruiz Saavedra <desiderantes93@gmail.com>
 

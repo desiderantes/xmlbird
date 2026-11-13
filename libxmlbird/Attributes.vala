@@ -91,7 +91,7 @@ public class Attributes : GLib.Object {
 		
 		public new Attribute get () {
 			if (next_attribute == null) {
-				XmlParser.warning ("No attribute available.");
+				GLib.warning ("No attribute available.");
 				return new Attribute.empty ();
 			}
 			

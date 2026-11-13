@@ -30,7 +30,7 @@ public class XmlTree : GLib.Object {
 
 		if (!parser.validate ()) {
 			valid = false;
-			XmlParser.warning ("Invalid XML.");
+			GLib.debug ("XML error: Invalid XML.");
 			return;
 		}
 		

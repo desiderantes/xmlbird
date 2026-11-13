@@ -14,10 +14,6 @@
 
 namespace B {
 
-/** Log levels */
-internal const int NONE = 0;
-internal const int WARNINGS = 1;
-
 /** 
  * XML parser
  * 
@@ -84,8 +80,8 @@ public class XmlParser : GLib.Object {
 	 */
 	public XmlParser (string data) {
 		this.input = data;
-		this.data = new XmlData (data, data.length, NONE);		
-		reparse (NONE);
+		this.data = new XmlData (data, data.length);		
+		reparse ();
 	}
 		
 	/** 
@@ -100,7 +96,7 @@ public class XmlParser : GLib.Object {
 			return false;
 		} 
 		
-		reparse (NONE);
+		reparse ();
 
 		if (error) {
 			return false;
@@ -108,14 +104,12 @@ public class XmlParser : GLib.Object {
 		
 		valid = validate_tags (root);
 			
-		reparse (NONE);
+		reparse ();
 		return valid;
 	}
 	
 	bool validate_tags (Tag tag) {
 		Attributes attributes = tag.get_attributes ();
-		
-		tag.log_level = NONE;
 		
 		foreach (Attribute a in attributes) {
 			if (error || tag.has_failed () || a.get_name_length () == 0) {
@@ -145,14 +139,14 @@ public class XmlParser : GLib.Object {
 	 * @return the root tag. 
 	 */
 	public Tag get_root_tag () {
-		reparse (WARNINGS);
+		reparse ();
 		return root;
 	}
 	
 	/** 
 	 * Reset the parser and start from the beginning of the XML document. 
 	 */
-	internal void reparse (int log_level) {
+	internal void reparse () {
 		int root_index;
 		Tag container;
 		XmlString content;
@@ -161,18 +155,14 @@ public class XmlParser : GLib.Object {
 		error = false;
 		empty = new XmlString ("", 0);
 		
-		data.log_level = log_level;
-		
 		root_index = find_root_tag ();
 		if (root_index == -1) {
-			if (log_level == WARNINGS) {
-				XmlParser.warning ("No root tag found.");
-			}
+			GLib.debug ("XML error: No root tag found.");
 			error = true;
 			root = new Tag.empty ();
 		} else {
 			content = data.substring (root_index);
-			container = new Tag (empty, empty, content, log_level, data);
+			container = new Tag (empty, empty, content, data);
 			root = container.get_next_tag ();
 			
 			if (container.has_failed ()) {
@@ -253,15 +243,6 @@ public class XmlParser : GLib.Object {
 		}
 		
 		return -1;
-	}
-
-	/**
-	 * Print a warning message.
-	 */
-	internal static void warning (string message) {
-		print ("XML error: "); 
-		print (message);
-		print ("\n");
 	}
 
 	/**

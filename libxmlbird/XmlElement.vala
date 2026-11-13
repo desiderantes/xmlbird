@@ -294,14 +294,14 @@ public class XmlElement : GLib.Object {
 
 		public new XmlElement get () {
 			if (unlikely (xml_elements == null)) {
-				XmlParser.warning ("No elements available.");
+				GLib.warning ("No elements available.");
 				return new XmlElement.empty ();
 			}
 			
 			Elements e = (!) xml_elements;
 			
 			if (unlikely (index >= e.size || index < 0)) {
-				XmlParser.warning (@"Element index out of bounds ($index >= $(e.size)).");
+				GLib.warning ("Element index out of bounds (%d >= %d).", index, e.size);
 				return new XmlElement.empty ();
 			}
 			
