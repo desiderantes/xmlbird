@@ -48,6 +48,10 @@ public class XmlTree : GLib.Object {
 	public bool validate () {
 		return valid;
 	}
+
+	public string to_string () {
+		return root_element.to_string ();
+	}
 }
 
 }

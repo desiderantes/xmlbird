@@ -46,6 +46,12 @@ public class XmlElement : GLib.Object {
 		xml_namespace = attribute.get_namespace ();
 		content = attribute.get_content ();
 	}
+
+	internal XmlElement.attribute_values (string name, string content, string xml_namespace = "") {
+		this.name = name;
+		this.xml_namespace = xml_namespace;
+		this.content = content;
+	}
 	
 	~XmlElement () {
 		foreach (XmlElement child in this) {
@@ -59,6 +65,92 @@ public class XmlElement : GLib.Object {
 		}
 		
 		return new Attributes.for_element ((!) attributes);
+	}
+
+	int find_attribute_index (string name, string xml_namespace = "") {
+		if (attributes == null) {
+			return -1;
+		}
+
+		Elements attrs = (!) attributes;
+		for (int i = 0; i < attrs.size; i++) {
+			XmlElement attr = attrs.get_element (i);
+			if (attr.name == name && attr.xml_namespace == xml_namespace) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	public bool has_attribute (string name, string xml_namespace = "") {
+		return find_attribute_index (name, xml_namespace) != -1;
+	}
+
+	public string? get_attribute (string name, string xml_namespace = "") {
+		int index = find_attribute_index (name, xml_namespace);
+		if (index == -1) {
+			return null;
+		}
+
+		return ((!) attributes).get_element (index).content;
+	}
+
+	public void set_attribute (string name, string content, string xml_namespace = "") {
+		if (attributes == null) {
+			attributes = new Elements ();
+		}
+
+		Elements attrs = (!) attributes;
+		int index = find_attribute_index (name, xml_namespace);
+		if (index != -1) {
+			attrs.get_element (index).content = content;
+		} else {
+			attrs.add (new XmlElement.attribute_values (name, content, xml_namespace));
+		}
+	}
+
+	public bool remove_attribute (string name, string xml_namespace = "") {
+		int index = find_attribute_index (name, xml_namespace);
+		if (index == -1) {
+			return false;
+		}
+
+		Elements attrs = (!) attributes;
+		attrs.remove_at (index);
+		if (attrs.size == 0) {
+			attributes = null;
+		}
+
+		return true;
+	}
+
+	public bool remove_child (XmlElement child) {
+		if (children == null) {
+			return false;
+		}
+
+		Elements c = (!) children;
+		if (!c.remove (child)) {
+			return false;
+		}
+
+		child.remove_parent ();
+
+		if (c.size == 0) {
+			children = null;
+			leaf = true;
+			content = "";
+		}
+
+		return true;
+	}
+
+	public void remove () {
+		if (parent != null) {
+			XmlElement p = (!) parent;
+			p.remove_child (this);
+		}
 	}
 	
 	internal void remove_parent () {
@@ -121,6 +213,60 @@ public class XmlElement : GLib.Object {
 
 	public string get_content () {
 		return content;
+	}
+
+	void append_qualified_name (StringBuilder sb) {
+		if (xml_namespace != "") {
+			sb.append (xml_namespace);
+			sb.append_c (':');
+		}
+		sb.append (name);
+	}
+
+	public void write_to (StringBuilder sb) {
+		if (name == "") {
+			return;
+		}
+
+		sb.append_c ('<');
+		append_qualified_name (sb);
+
+		if (attributes != null) {
+			Elements attrs = (!) attributes;
+			for (int i = 0; i < attrs.size; i++) {
+				XmlElement attr = attrs.get_element (i);
+				sb.append_c (' ');
+				attr.append_qualified_name (sb);
+				sb.append ("=\"");
+				sb.append (XmlParser.encode (attr.content));
+				sb.append_c ('"');
+			}
+		}
+
+		if (children != null && ((!) children).size > 0) {
+			sb.append_c ('>');
+			Elements c = (!) children;
+			for (int i = 0; i < c.size; i++) {
+				c.get_element (i).write_to (sb);
+			}
+			sb.append ("</");
+			append_qualified_name (sb);
+			sb.append_c ('>');
+		} else if (content != "") {
+			sb.append_c ('>');
+			sb.append (XmlParser.encode (content));
+			sb.append ("</");
+			append_qualified_name (sb);
+			sb.append_c ('>');
+		} else {
+			sb.append ("/>");
+		}
+	}
+
+	public string to_string () {
+		var sb = new StringBuilder ();
+		write_to (sb);
+		return sb.str;
 	}
 
 	public Iterator iterator () {

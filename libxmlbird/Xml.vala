@@ -195,10 +195,60 @@ public class XmlParser : GLib.Object {
 			
 			if (c == '<') {
 				modifier = index;
-				data.get_next_ascii_char (ref modifier, out c);
-				if (c != '?' && c != '[' && c != '!') {
+				if (!data.get_next_ascii_char (ref modifier, out c)) {
+					break;
+				}
+				if (c == '?') {
+					int end_pi = data.index_of ("?>", modifier);
+					if (end_pi == -1) {
+						return -1;
+					}
+					index = end_pi + 2;
+				} else if (c == '!') {
+					if (data.substring (index).has_prefix ("!--")) {
+						int end_comment = data.index_of ("-->", index + 3);
+						if (end_comment == -1) {
+							return -1;
+						}
+						index = end_comment + 3;
+					} else if (data.substring (index).has_prefix ("![CDATA[")) {
+						int end_cdata = data.index_of ("]]>", index + 8);
+						if (end_cdata == -1) {
+							return -1;
+						}
+						index = end_cdata + 3;
+					} else {
+						bool in_brackets = false;
+						bool in_quote = false;
+						unichar quote_char = '\0';
+						int decl_idx = modifier;
+						unichar dc;
+						bool closed = false;
+						while (data.get_next_ascii_char (ref decl_idx, out dc)) {
+							if (in_quote) {
+								if (dc == quote_char) {
+									in_quote = false;
+								}
+							} else if (dc == '"' || dc == '\'') {
+								in_quote = true;
+								quote_char = dc;
+							} else if (dc == '[') {
+								in_brackets = true;
+							} else if (dc == ']') {
+								in_brackets = false;
+							} else if (dc == '>' && !in_brackets) {
+								closed = true;
+								break;
+							}
+						}
+						if (!closed) {
+							return -1;
+						}
+						index = decl_idx;
+					}
+				} else if (c != '[') {
 					return prev_index;
-				} 
+				}
 			}
 		}
 		
@@ -219,26 +269,102 @@ public class XmlParser : GLib.Object {
 	 * &amp; will be replaced with & etc.
 	 */
 	public static string decode (string s) {
-		string t;
-		t = s.replace ("&quot;", "\"");
-		t = t.replace ("&apos;", "'");
-		t = t.replace ("&lt;", "<");
-		t = t.replace ("&gt;", ">");
-		t = t.replace ("&amp;", "&");
-		return t;
+		int len = s.length;
+		if (len == 0) {
+			return "";
+		}
+
+		unowned uint8[] bytes = s.data;
+		var sb = new StringBuilder.sized (len);
+		int start = 0;
+
+		for (int i = 0; i < len; i++) {
+			if (bytes[i] == '&') {
+				string? replacement = null;
+				int entity_len = 0;
+
+				if (i + 6 <= len && Posix.memcmp (&bytes[i], "&quot;", 6) == 0) {
+					replacement = "\"";
+					entity_len = 6;
+				} else if (i + 6 <= len && Posix.memcmp (&bytes[i], "&apos;", 6) == 0) {
+					replacement = "'";
+					entity_len = 6;
+				} else if (i + 4 <= len && Posix.memcmp (&bytes[i], "&lt;", 4) == 0) {
+					replacement = "<";
+					entity_len = 4;
+				} else if (i + 4 <= len && Posix.memcmp (&bytes[i], "&gt;", 4) == 0) {
+					replacement = ">";
+					entity_len = 4;
+				} else if (i + 5 <= len && Posix.memcmp (&bytes[i], "&amp;", 5) == 0) {
+					replacement = "&";
+					entity_len = 5;
+				}
+
+				if (replacement != null) {
+					if (i > start) {
+						sb.append_len ((string) (&bytes[start]), i - start);
+					}
+					sb.append ((!) replacement);
+					i += entity_len - 1;
+					start = i + 1;
+				}
+			}
+		}
+
+		if (start < len) {
+			sb.append_len ((string) (&bytes[start]), len - start);
+		}
+
+		return sb.str;
 	}
 
 	/**
 	 * Replace ", ' < > and & with encoded characters.
 	 */
 	public static string encode (string s) {
-		string t;
-		t = s.replace ("&", "&amp;");
-		t = t.replace ("\"", "&quot;");
-		t = t.replace ("'", "&apos;");
-		t = t.replace ("<", "&lt;");
-		t = t.replace (">", "&gt;");	
-		return t;
+		int len = s.length;
+		if (len == 0) {
+			return "";
+		}
+
+		unowned uint8[] bytes = s.data;
+		var sb = new StringBuilder.sized (len);
+		int start = 0;
+
+		for (int i = 0; i < len; i++) {
+			string? entity = null;
+			switch (bytes[i]) {
+			case '&':
+				entity = "&amp;";
+				break;
+			case '"':
+				entity = "&quot;";
+				break;
+			case '\'':
+				entity = "&apos;";
+				break;
+			case '<':
+				entity = "&lt;";
+				break;
+			case '>':
+				entity = "&gt;";
+				break;
+			}
+
+			if (entity != null) {
+				if (i > start) {
+					sb.append_len ((string) (&bytes[start]), i - start);
+				}
+				sb.append ((!) entity);
+				start = i + 1;
+			}
+		}
+
+		if (start < len) {
+			sb.append_len ((string) (&bytes[start]), len - start);
+		}
+
+		return sb.str;
 	}
 
 }

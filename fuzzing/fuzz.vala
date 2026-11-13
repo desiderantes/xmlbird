@@ -53,6 +53,27 @@ int main (string[] args) {
 			var root = parser.get_root ();
 			var content = new StringBuilder ();
 			add_tag (content, root);
+
+			root.set_attribute ("data-fuzzed", "1 & 2");
+			root.has_attribute ("data-fuzzed");
+			root.get_attribute ("data-fuzzed");
+			root.remove_attribute ("data-fuzzed");
+
+			string serialized = parser.to_string ();
+			var reparsed = new XmlTree (serialized);
+			if (reparsed.validate ()) {
+				var reparsed_root = reparsed.get_root ();
+				var to_remove = new List<XmlElement> ();
+				foreach (XmlElement child in reparsed_root) {
+					if (child.get_namespace () == "sodipodi") {
+						to_remove.append (child);
+					}
+				}
+				foreach (XmlElement child in to_remove) {
+					child.remove ();
+				}
+				reparsed.to_string ();
+			}
 		}
 	}
 	

@@ -53,28 +53,26 @@ internal class XmlString : GLib.Object {
 	}
 	
 	internal int index_of (string needle, int offset = 0) {
-		int len = length;
 		int needle_len = needle.length;
+		if (needle_len == 0 || offset < 0 || offset > length) {
+			return -1;
+		}
+
+		int len = length - offset;
 		char* needle_data = (char*) needle;
 		char* haystack = data + offset;
 		
-		if (needle_len == 0 || offset > length) {
-			return -1;
-		}
-		
-		for (int i = 0; i < len; i++) {
+		for (int i = 0; i <= len - needle_len; i++) {
 			if (haystack[i] == '\0') {
 				return -1;
 			}
 			
-			for (int j = 0; j <= needle_len && i + j < len; j++) {
-				if (j == needle_len) {
-					return offset + i;
-				}
-				
-				if (needle_data[j] != haystack[i + j]) {
-					break;
-				}
+			int j = 0;
+			while (j < needle_len && needle_data[j] == haystack[i + j]) {
+				j++;
+			}
+			if (j == needle_len) {
+				return offset + i;
 			}
 		}
 								

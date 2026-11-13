@@ -6,7 +6,12 @@ minimal_exe = executable(
   test_common_sources,
   dependencies: [xmlbird_dep, posix_dep],
 )
-test('minimal', minimal_exe, suite: 'unit')
+test(
+  'minimal',
+  minimal_exe,
+  args: [files('../resources/xmlbird-icon.svg')],
+  suite: 'unit',
+)
 
 benchmark_exe = executable(
   'xmlbird-benchmark',

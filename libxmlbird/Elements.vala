@@ -56,6 +56,34 @@ internal class Elements : GLib.Object {
 		size++;
 	}
 
+	public void remove_at (int index) {
+		if (unlikely (index < 0 || index >= size)) {
+			XmlParser.warning ("Index out of bounds in Elements.");
+			return;
+		}
+
+		XmlElement e = data[index];
+		e.unref ();
+
+		for (int i = index; i < size - 1; i++) {
+			data[i] = data[i + 1];
+		}
+
+		size--;
+		data[size] = null;
+	}
+
+	public bool remove (XmlElement element) {
+		for (int i = 0; i < size; i++) {
+			if (data[i] == element) {
+				remove_at (i);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 }
 
 }

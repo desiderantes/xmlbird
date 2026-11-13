@@ -55,6 +55,8 @@ xmlbird_dep = declare_dependency(
     dependencies: [glib_dep, gobject_dep],
 )
 
+meson.override_dependency('xmlbird', xmlbird_dep)
+
 pkg = import('pkgconfig')
 pkg.generate(
     xmlbird_lib,

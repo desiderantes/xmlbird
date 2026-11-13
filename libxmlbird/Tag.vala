@@ -272,6 +272,15 @@ public class Tag : GLib.Object {
 				}
 				
 				if (name.has_prefix ("!")) {
+					if (tag_name.has_prefix ("!--")) {
+						int comment_end = data.index_of ("-->", index + 3);
+						if (unlikely (comment_end == -1)) {
+							warn ("Comment not closed.");
+							error = true;
+							return new Tag.empty ();
+						}
+						index = comment_end + 3;
+					}
 					continue;
 				}
 
@@ -588,6 +597,12 @@ public class Tag : GLib.Object {
 		ns = new XmlString ("", 0);
 		ns_separator = attribute_name.index_of (":");
 		if (ns_separator != -1) {
+			if (unlikely (ns_separator + 1 >= attribute_name.length)) {
+				has_attributes = false;
+				error = true;
+				warn (@"Empty attribute name in tag $(this.name).");
+				return new Attribute.empty ();
+			}
 			ns = attribute_name.substring (0, ns_separator);
 			attribute_name = attribute_name.substring (ns_separator + 1);
 		}
