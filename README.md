@@ -94,6 +94,11 @@ To run continuous coverage-guided fuzzing with AFL++ (`afl-fuzz`):
     CC=afl-clang-fast meson setup build -Dfuzzing=true
     ninja -C build fuzz
 
+By default `fuzz` runs until interrupted (`-Dfuzz_duration=0`). To run for a fixed number of seconds (for example, 5 minutes locally or 30 seconds in CI):
+
+    CC=afl-clang-fast meson setup build -Dfuzzing=true -Dfuzz_duration=300
+    ninja -C build fuzz
+
 XML Bird is a part of the [Birdfont][birdfont] project.
 
 [xmlbird]: https://birdfont.org/images/xmlbird-icon.png "XML Bird icon"

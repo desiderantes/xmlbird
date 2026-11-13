@@ -60,3 +60,60 @@ jobs:
         if: always() && !env.ACT
         with:
           files: build/meson-logs/testlog.junit.xml
+
+  fuzz:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            valac \
+            libglib2.0-dev \
+            git \
+            gcc \
+            make \
+            python3-pip \
+            afl++
+          pip3 install --break-system-packages --upgrade meson ninja
+
+      - name: Setup Meson (AFL++)
+        run: CC=afl-clang-fast meson setup build -Dfuzzing=true -Dfuzz_duration=60 -Dwarning_level=2
+
+      - name: Compile
+        run: meson compile -C build
+
+      - name: Run Seed Tests
+        run: meson test -C build --suite fuzz --verbose
+
+      - name: Run AFL++ Fuzzing (60s)
+        env:
+          AFL_NO_UI: "1"
+        run: |
+          ninja -C build fuzz
+          if [ -f build/fuzzing/fuzz_out/default/fuzzer_stats ]; then
+            cat build/fuzzing/fuzz_out/default/fuzzer_stats
+          fi
+          for f in build/fuzzing/fuzz_out/default/crashes/id:* build/fuzzing/fuzz_out/default/hangs/id:*; do
+            if [ -e "$f" ]; then
+              echo "Fuzzing found crashes or hangs in build/fuzzing/fuzz_out/default/" >&2
+              exit 1
+            fi
+          done
+
+      - name: Upload Fuzz Output
+        uses: actions/upload-artifact@v4
+        if: always() && !env.ACT
+        with:
+          name: afl-fuzz-output
+          path: build/fuzzing/fuzz_out
+          retention-days: 14
