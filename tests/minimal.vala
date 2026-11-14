@@ -80,6 +80,79 @@ void test_comments_and_declarations () {
 
 	var p5 = new XmlTree ("""<svg :="x"/>""");
 	assert (!p5.validate ());
+
+	// Comments containing matching/nested tags without whitespace
+	var p6 = new XmlTree ("""<a><!--<a>--></a>""");
+	assert (p6.validate ());
+	assert (p6.get_root ().get_name () == "a");
+
+	var p7 = new XmlTree ("""<a><!--</a>--><b/></a>""");
+	assert (p7.validate ());
+	int p7_children = 0;
+	foreach (XmlElement child in p7.get_root ()) {
+		assert (child.get_name () == "b");
+		p7_children++;
+	}
+	assert (p7_children == 1);
+
+	test_malformed_angle_brackets ();
+}
+
+void test_malformed_angle_brackets () {
+	var lt_run = new StringBuilder ();
+	for (int i = 0; i < 20000; i++) {
+		lt_run.append_c ('<');
+	}
+
+	var p1 = new XmlTree (lt_run.str + "r><P");
+	assert (!p1.validate ());
+
+	var p2 = new XmlTree ("<a>" + lt_run.str + "r><P");
+	assert (!p2.validate ());
+
+	var nested_unclosed = new StringBuilder ("<a>");
+	for (int i = 0; i < 5000; i++) {
+		nested_unclosed.append ("<a ");
+	}
+	nested_unclosed.append ("></a>");
+	var p3 = new XmlTree (nested_unclosed.str);
+	assert (!p3.validate ());
+
+	assert (!(new XmlTree ("<a><")).validate ());
+	assert (!(new XmlTree ("<a><!--")).validate ());
+	assert (!(new XmlTree ("<a><b<c/></a>")).validate ());
+	assert (!(new XmlTree ("<a=\"1\"/>")).validate ());
+	assert (!(new XmlTree ("<a><b></a>")).validate ());
+	assert (!(new XmlTree ("<a><b><c attr x=\"1\"/></a>")).validate ());
+	assert (!(new XmlTree ("<a b=\"unclosed")).validate ());
+
+	// Single-quoted attributes containing angle brackets
+	var sq = new XmlTree ("""<a x='1>2<3' y="4>5<6">ok</a>""");
+	assert (sq.validate ());
+	assert (sq.get_root ().get_attribute ("x") == "1>2<3");
+	assert (sq.get_root ().get_attribute ("y") == "4>5<6");
+	assert (sq.get_root ().get_content () == "ok");
+
+	// Deeply nested valid XML (must complete linearly without O(D^2) slowdown)
+	var deep_valid = new StringBuilder ();
+	for (int i = 0; i < 600; i++) {
+		deep_valid.append ("<a>");
+	}
+	for (int i = 0; i < 600; i++) {
+		deep_valid.append ("</a>");
+	}
+	var deep_tree = new XmlTree (deep_valid.str);
+	assert (deep_tree.validate ());
+
+	// Excessively deep nesting (> MAX_DEPTH) must fail cleanly without stack overflow
+	var too_deep = new StringBuilder ();
+	for (int i = 0; i < 2500; i++) {
+		too_deep.append ("<a>");
+	}
+	for (int i = 0; i < 2500; i++) {
+		too_deep.append ("</a>");
+	}
+	assert (!(new XmlTree (too_deep.str)).validate ());
 }
 
 void test_attribute_mutation () {

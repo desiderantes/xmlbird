@@ -47,6 +47,10 @@ internal class XmlString : GLib.Object {
 			if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '>' || c == '/') {
 				return previous_index;
 			}
+			
+			if (c == '<' || c == '=' || c == '"' || c == '\'') {
+				return -1;
+			}
 		}
 		
 		return -1;

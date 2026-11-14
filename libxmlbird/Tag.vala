@@ -225,8 +225,6 @@ public class Tag : GLib.Object {
 		XmlString name;
 		XmlString attributes;
 		XmlString content;
-		
-		string tag_name;
 	
 		end_tag_index = -1;
 		
@@ -251,6 +249,19 @@ public class Tag : GLib.Object {
 			
 		while (data.get_next_ascii_char (ref index, out c)) {
 			if (c == '<') {
+				int lt_pos = index - 1;
+
+				if (index < data.length && data.substring (index).has_prefix ("!--")) {
+					int comment_end = data.index_of ("-->", index + 3);
+					if (unlikely (comment_end == -1)) {
+						warn ("Comment not closed.");
+						error = true;
+						return new Tag.empty ();
+					}
+					index = comment_end + 3;
+					continue;
+				}
+
 				separator = data.find_next_tag_separator (index);
 
 				if (unlikely (separator < 0)) {
@@ -260,24 +271,14 @@ public class Tag : GLib.Object {
 				}
 
 				name = data.substring (index, separator - index);
-				tag_name = name.to_string ();
 				
-				if (unlikely (tag_name == "")) {
+				if (unlikely (name.length == 0)) {
 					warn ("A tag without a name.");
 					error = true;
 					return new Tag.empty ();
 				}
 				
 				if (name.has_prefix ("!")) {
-					if (tag_name.has_prefix ("!--")) {
-						int comment_end = data.index_of ("-->", index + 3);
-						if (unlikely (comment_end == -1)) {
-							warn ("Comment not closed.");
-							error = true;
-							return new Tag.empty ();
-						}
-						index = comment_end + 3;
-					}
 					continue;
 				}
 
@@ -300,7 +301,7 @@ public class Tag : GLib.Object {
 				
 				if (attributes.has_suffix ("/")) {
 					content = new XmlString ("", 0);
-					end_tag_index = find_end_of_tag (index);
+					end_tag_index = end;
 					data.get_next_ascii_char (ref end_tag_index, out c);
 				} else {
 					if (unlikely (!data.get_next_ascii_char (ref end, out c))) {; // skip >
@@ -315,9 +316,9 @@ public class Tag : GLib.Object {
 						break;
 					}
 					
-					closing_tag = find_closing_tag (name, end);
+					closing_tag = find_closing_tag (name, lt_pos);
 					
-					if (unlikely (closing_tag == -1 || closing_tag >= data.length)) {
+					if (unlikely (closing_tag == -1 || closing_tag >= data.length || closing_tag < end)) {
 						warn (@"No closing tag for $name");
 						error = true;
 						break;
@@ -354,8 +355,12 @@ public class Tag : GLib.Object {
 				return current;
 			}
 			
-			if (c == '"') {
-				index = find_end_quote (index);
+			if (c == '<' && current > start) {
+				break;
+			}
+			
+			if (c == '"' || c == '\'') {
+				index = find_end_quote (index, c);
 				
 				if (index == -1) {					
 					break;
@@ -373,8 +378,8 @@ public class Tag : GLib.Object {
 		return -1;
 	}
 	
-	int find_end_quote (int start) {
-		int i = data.index_of ("\"", start);
+	int find_end_quote (int start, unichar quote_char) {
+		int i = data.index_of (quote_char == '\'' ? "'" : "\"", start);
 		
 		if (unlikely (i == -1)) {
 			warn ("Expecting end quote.");
@@ -384,161 +389,22 @@ public class Tag : GLib.Object {
 		return i;
 	}
 	
-	int find_closing_tag (XmlString name, int start) {
-		int index = start;
-		int slash_index = start;
-		int previous_index;
-		unichar c, slash;
-		int start_count = 1;
-		int tag_start;
-		string tag_name;
-		
+	int find_closing_tag (XmlString name, int lt_offset) {
 		if (unlikely (name.length == 0)) {
 			error = true;
 			warn ("No name for tag.");
 			return -1;
 		}
-		
-		index = entire_file.get_index (data) + start;
 
-		if (unlikely (index >= entire_file.length)) {
-			warn ("Unexpected end of file");
+		int base_offset = entire_file.get_index (data);
+		int close_offset = entire_file.find_closing_tag (base_offset + lt_offset);
+		if (unlikely (close_offset == -1)) {
 			error = true;
+			warn (@"No closing tag for $(name.to_string ())");
 			return -1;
 		}
 
-		while (true) {
-			while (true) {
-				if (unlikely (index >= entire_file.length || index == -1)) {
-					warn (@"No end tag for $(name), end of file. index: $index");
-					error = true;
-					return -1;
-				}	
-		
-				if (entire_file.substring (index).has_prefix ("<")) {
-					break;
-				}
-				
-				index = entire_file.find_next_tag_token (index + 1);
-			}
-
-			previous_index = index - entire_file.get_index (data);
-			
-			if (unlikely (!entire_file.get_next_ascii_char (ref index, out c))) {
-				warn ("Unexpected end of file");
-				error = true;
-				break;
-			}
-			
-			if (c == '<') {
-				tag_start = index;
-				slash_index = index;
-				entire_file.get_next_ascii_char (ref slash_index, out slash);
-				
-				tag_name = parse_name (entire_file, tag_start);
-				
-				if (unlikely (tag_name == "")) {
-					warn (@"Tag without name.");
-					warn (@"Row: $(get_row (tag_start))");
-					error = true;
-					return -1;
-				}
-				
-				if (slash == '/' && is_tag (entire_file, name, slash_index)) {
-					if (start_count == 1) {
-						return previous_index;
-					} else {
-						start_count--;
-						if (start_count == 0) {
-							return previous_index;
-						}
-					}
-					
-				} else if (is_tag (entire_file, name, tag_start)) {
-					if (!is_self_closing (entire_file, tag_start)) {
-						start_count++;
-					}
-				} 
-			}
-		}
-		
-		error = true;
-		warn (@"No closing tag for $(name.to_string ())");
-		
-		return -1;
-	}
-	
-	bool is_self_closing (XmlData tag, int start) {
-		Tag all_tags = new Tag.empty ();
-		all_tags.entire_file = entire_file;
-		all_tags.data = entire_file;
-		
-		int index = all_tags.find_end_of_tag (start);
-		int end = index;
-		unichar c_data;
-		unowned string s;
-		unowned string? n = (string) tag.data;
-		
-		int closing_slash = start;
-		
-		return_val_if_fail (n != null, true);
-		
-		s = (!) n;
-		
-		while (s.get_prev_char (ref index, out c_data) && index > start) {
-			if (c_data == '>' || c_data == ' ' || c_data == '\t' 
-				|| c_data == '\n' || c_data == '\r') {
-				continue;	
-			}
-			
-			if (c_data == '/') {
-				return true;
-			} else {
-				return false;
-			}
-		}
-		
-		return false;
-	}
-	
-	string parse_name (XmlData data, int index) {
-		int slash_offset = 0;
-		
-		if (data.substring (index).has_prefix("/")) {
-			slash_offset = "/".length;
-			index += slash_offset;
-		}
-		
-		int separator = data.find_next_tag_separator (index);
-
-		if (unlikely (!(0 <= separator < data.length))) {
-			warn("Tag without name.");
-			return "";
-		}
-
-		return data.substring (index - slash_offset, separator - index + slash_offset).to_string ();
-	}
-	
-	bool is_tag (XmlString tag, XmlString name, int start) {
-		int index = 0;
-		int data_index = start;
-		unichar c;
-		unichar c_data;
-		
-		while (name.get_next_ascii_char (ref index, out c)) {
-			if (tag.get_next_ascii_char (ref data_index, out c_data)) {
-				if (c_data != c) {
-					return false;
-				}
-			}
-		}
-		
-		if (tag.get_next_ascii_char (ref data_index, out c_data)) {
-			return c_data == '>' || c_data == ' ' || c_data == '\t' 
-				|| c_data == '\n' || c_data == '\r' || c_data == '/';
-		}
-		
-		return false;
+		return close_offset - base_offset;
 	}
 
 	internal Attribute obtain_next_attribute () {

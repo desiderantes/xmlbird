@@ -3,7 +3,7 @@ fs = import('fs')
 fuzz_sources = files('fuzz.vala')
 
 fuzz_exe = executable(
-  'fuzz',
+  'xmlbird-fuzz',
   fuzz_sources,
   dependencies: [xmlbird_dep, posix_dep],
 )
