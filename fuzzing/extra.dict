@@ -1,0 +1,27 @@
+# Supplementary XML fuzzing tokens (used alongside system xml.dict)
+
+bom_utf8="\xEF\xBB\xBF"
+bom_utf16le="\xFF\xFE"
+bom_utf16be="\xFE\xFF"
+bom_utf32be="\x00\x00\xFE\xFF"
+
+cdata_empty="<![CDATA[]]>"
+comment_start="<!--"
+comment_end="-->"
+pi_close="?>"
+decl_close="!>"
+tag_self_close="/>"
+
+param_entity_decl="<!ENTITY % a "
+param_entity_ref="%a;"
+entity_sys="<!ENTITY a SYSTEM \"file:///\">"
+entity_amp="&amp;"
+entity_gt="&gt;"
+entity_quot="&quot;"
+entity_apos="&apos;"
+char_ref_lt_dec="&#60;"
+char_ref_lt_hex="&#x3C;"
+
+attr_single=" a='1'"
+attr_gt=" a=\">\""
+attr_lt=" a=\"<\""

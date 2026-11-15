@@ -1,0 +1,1 @@
+<!DOCTYPE r SYSTEM "a>b" [<!ENTITY a "<x>">]><r><!ELEMENT x EMPTY><x/></r>

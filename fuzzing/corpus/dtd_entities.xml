@@ -1,0 +1,1 @@
+<!DOCTYPE r [<!ELEMENT r (a|b)*><!ATTLIST r id ID #IMPLIED><!ENTITY e "<a>&lt;</a>"><!ENTITY % pe "x">]><r id="&e;"/>

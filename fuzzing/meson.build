@@ -20,6 +20,19 @@ fuzz_corpus = files(
   'corpus/unclosed_quote.xml',
   'corpus/unclosed_prolog.xml',
   'corpus/empty_ns_attr.xml',
+  'corpus/bom_utf8.xml',
+  'corpus/bom_utf16_mismatch.xml',
+  'corpus/utf8_markup.xml',
+  'corpus/embedded_nul.xml',
+  'corpus/dtd_entities.xml',
+  'corpus/dtd_nested_quotes.xml',
+  'corpus/cdata_and_comments_inner.xml',
+  'corpus/attrs_whitespace_quotes.xml',
+  'corpus/same_name_nesting.xml',
+  'corpus/misnested_tags.xml',
+  'corpus/entity_roundtrip_edge.xml',
+  'corpus/deep_nesting.xml',
+  'corpus/over_max_depth.xml',
 )
 
 test(
@@ -35,6 +48,8 @@ afl_fuzz = find_program('afl-fuzz', required: false)
 if afl_fuzz.found()
   cc = meson.get_compiler('c')
   afl_args = ['-i', fuzz_corpus_dir, '-o', meson.current_build_dir() / 'fuzz_out']
+
+  afl_args += ['-x', meson.current_source_dir() / 'extra.dict']
 
   foreach dict : [
     '/usr/share/afl/dictionaries/xml.dict',
